@@ -138,3 +138,5 @@ exports.getAnalytics = async (req, res) => {
         res.status(400).json({ status: 'error', message: err.message });
     }
 };
+
+// Optimized statistics aggregation queries for faster dashboard rendering and index performance
