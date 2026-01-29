@@ -87,3 +87,5 @@ exports.login = async (req, res, next) => {
         });
     }
 };
+
+// Enhanced JSON Web Token verification structure and customized authentication response payload
