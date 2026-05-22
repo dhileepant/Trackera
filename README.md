@@ -1,10 +1,10 @@
-# Trackera 🚀
+# Trackera 
 
 Trackera is a premium, full-featured **Student Coding Practice and Progress Tracking Platform** designed to help students master Data Structures & Algorithms (DSA), build coding streaks, and prepare for placement interviews. The platform combines comprehensive dashboard visualizations, Monaco Editor-powered coding workspaces, and an AI-backed Coding Assistant.
 
 ---
 
-## 🎨 Key Features
+##  Key Features
 
 - 📊 **Dynamic Dashboards**: Full analytics detailing coding statistics, placement offers, problem-solving progress, and streaks.
 - 🔥 **GitHub-style Coding Heatmap**: A contribution calendar tracking student's daily coding activities.
@@ -15,7 +15,7 @@ Trackera is a premium, full-featured **Student Coding Practice and Progress Trac
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Backend
 - **Node.js** & **Express.js** (REST API)
@@ -57,7 +57,7 @@ Trackera/
 
 ---
 
-## 🚀 Installation & Local Setup
+##  Installation & Local Setup
 
 ### 1. Prerequisites
 Ensure you have **Node.js** and **MongoDB** installed and running on your system.
