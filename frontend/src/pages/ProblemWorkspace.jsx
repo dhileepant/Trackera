@@ -60,7 +60,8 @@ const ProblemWorkspace = () => {
                 results: res.data.results
             });
         } catch (err) {
-            setExecutionResult({ type: 'error', status: 'Error', output: err.message });
+            const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+            setExecutionResult({ type: 'error', status: 'Error', output: errorMsg });
         } finally {
             setExecuting(false);
         }
@@ -79,7 +80,8 @@ const ProblemWorkspace = () => {
                 results: res.data.results
             });
         } catch (err) {
-            setExecutionResult({ type: 'error', status: 'Error', output: err.message });
+            const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+            setExecutionResult({ type: 'error', status: 'Error', output: errorMsg });
         } finally {
             setExecuting(false);
         }
@@ -218,7 +220,7 @@ const ProblemWorkspace = () => {
                                     )}
                                 </div>
                                 
-                                {executionResult.results && executionResult.results.length > 0 && (
+                                {executionResult.results && executionResult.results.length > 0 ? (
                                     <div className="space-y-4 mt-4 text-sm">
                                         {executionResult.results.map((r, i) => (
                                             <div key={i} className={`p-4 rounded border ${r.passed ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
@@ -246,6 +248,15 @@ const ProblemWorkspace = () => {
                                             </div>
                                         ))}
                                     </div>
+                                ) : (
+                                    executionResult.output && (
+                                        <div className="p-4 rounded-xl border border-red-500/10 bg-red-500/5 text-red-400 mt-4 text-sm leading-relaxed whitespace-pre-wrap">
+                                            <div className="font-bold flex items-center gap-2 mb-1">
+                                                <AlertTriangle size={16} className="text-red-500" /> Details:
+                                            </div>
+                                            {executionResult.output}
+                                        </div>
+                                    )
                                 )}
                             </div>
                         )}

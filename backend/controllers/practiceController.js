@@ -113,60 +113,79 @@ const path = require('path');
 const executeCodeOnJudge0 = async (code, languageId, input) => {
     // If no API key, use local execution fallback (Very useful for development)
     if (!process.env.JUDGE0_API_KEY) {
+        const os = require('os');
         return new Promise((resolve) => {
-            const tempDir = path.join(__dirname, '../temp_exec');
-            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-            
-            const fileName = 'exec_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            let fileExt = '';
-            let command = '';
-            
-            if (languageId === 63) { // JS
-                fileExt = '.js';
-                command = `node ${fileName}${fileExt}`;
-            } else if (languageId === 71) { // Python
-                fileExt = '.py';
-                command = `python ${fileName}${fileExt}`;
-            } else {
-                return resolve({
-                    stdout: null,
-                    stderr: "Local execution only supports JS and Python. Please provide a RapidAPI Judge0 key for C++/Java.",
-                    status: { id: 11, description: 'Runtime Error' },
-                    time: 0
-                });
-            }
-            
-            const filePath = path.join(tempDir, `${fileName}${fileExt}`);
-            fs.writeFileSync(filePath, code);
-            
-            const startTime = Date.now();
-            const child = exec(command, { cwd: tempDir, timeout: 5000 }, (error, stdout, stderr) => {
-                const endTime = Date.now();
-                const duration = (endTime - startTime) / 1000;
+            try {
+                const tempDir = path.join(os.tmpdir(), 'temp_exec');
+                if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
                 
-                // Cleanup
-                try { fs.unlinkSync(filePath); } catch(e) {}
+                const fileName = 'exec_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                let fileExt = '';
+                let command = '';
                 
-                if (error && error.killed) {
+                if (languageId === 63) { // JS
+                    fileExt = '.js';
+                    command = `node ${fileName}${fileExt}`;
+                } else if (languageId === 71) { // Python
+                    fileExt = '.py';
+                    command = `python ${fileName}${fileExt}`;
+                } else {
                     return resolve({
                         stdout: null,
-                        stderr: "Time Limit Exceeded",
-                        status: { id: 5, description: 'Time Limit Exceeded' },
-                        time: duration
+                        stderr: "Local execution only supports JS and Python. Please provide a RapidAPI Judge0 key for C++/Java.",
+                        status: { id: 11, description: 'Runtime Error' },
+                        time: 0
                     });
                 }
                 
-                resolve({
-                    stdout: stdout || null,
-                    stderr: stderr || null,
-                    status: error ? { id: 11, description: 'Runtime Error' } : { id: 3, description: 'Accepted' },
-                    time: duration
+                const filePath = path.join(tempDir, `${fileName}${fileExt}`);
+                fs.writeFileSync(filePath, code);
+                
+                const startTime = Date.now();
+                const child = exec(command, { cwd: tempDir, timeout: 5000 }, (error, stdout, stderr) => {
+                    const endTime = Date.now();
+                    const duration = (endTime - startTime) / 1000;
+                    
+                    // Cleanup
+                    try { fs.unlinkSync(filePath); } catch(e) {}
+                    
+                    if (error && error.killed) {
+                        return resolve({
+                            stdout: null,
+                            stderr: "Time Limit Exceeded",
+                            status: { id: 5, description: 'Time Limit Exceeded' },
+                            time: duration
+                        });
+                    }
+                    
+                    if (error) {
+                        return resolve({
+                            stdout: null,
+                            stderr: `Local execution error (e.g. interpreter not found): ${error.message}. Please configure a RapidAPI JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
+                            status: { id: 11, description: 'Runtime Error' },
+                            time: duration
+                        });
+                    }
+                    
+                    resolve({
+                        stdout: stdout || null,
+                        stderr: stderr || null,
+                        status: { id: 3, description: 'Accepted' },
+                        time: duration
+                    });
                 });
-            });
-            
-            if (input) {
-                child.stdin.write(input);
-                child.stdin.end();
+                
+                if (input) {
+                    child.stdin.write(input);
+                    child.stdin.end();
+                }
+            } catch (fsError) {
+                resolve({
+                    stdout: null,
+                    stderr: `Local execution environment failed: ${fsError.message}. Please configure a RapidAPI JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
+                    status: { id: 11, description: 'Execution Error' },
+                    time: 0
+                });
             }
         });
     }
