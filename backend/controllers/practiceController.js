@@ -111,8 +111,11 @@ const fs = require('fs');
 const path = require('path');
 
 const executeCodeOnJudge0 = async (code, languageId, input) => {
+    const apiKey = process.env.ONECOMPILER_API_KEY || process.env.JUDGE0_API_KEY;
+    const preferJudge0 = process.env.USE_JUDGE0 === 'true';
+
     // If no API key, use local execution fallback (Very useful for development)
-    if (!process.env.JUDGE0_API_KEY) {
+    if (!apiKey) {
         const os = require('os');
         return new Promise((resolve) => {
             try {
@@ -132,7 +135,7 @@ const executeCodeOnJudge0 = async (code, languageId, input) => {
                 } else {
                     return resolve({
                         stdout: null,
-                        stderr: "Local execution only supports JS and Python. Please provide a RapidAPI Judge0 key for C++/Java.",
+                        stderr: "Local execution only supports JS and Python. Please provide a RapidAPI OneCompiler/Judge0 key for C++/Java.",
                         status: { id: 11, description: 'Runtime Error' },
                         time: 0
                     });
@@ -161,7 +164,7 @@ const executeCodeOnJudge0 = async (code, languageId, input) => {
                     if (error) {
                         return resolve({
                             stdout: null,
-                            stderr: `Local execution error (e.g. interpreter not found): ${error.message}. Please configure a RapidAPI JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
+                            stderr: `Local execution error (e.g. interpreter not found): ${error.message}. Please configure a RapidAPI ONECOMPILER_API_KEY or JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
                             status: { id: 11, description: 'Runtime Error' },
                             time: duration
                         });
@@ -182,7 +185,7 @@ const executeCodeOnJudge0 = async (code, languageId, input) => {
             } catch (fsError) {
                 resolve({
                     stdout: null,
-                    stderr: `Local execution environment failed: ${fsError.message}. Please configure a RapidAPI JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
+                    stderr: `Local execution environment failed: ${fsError.message}. Please configure a RapidAPI ONECOMPILER_API_KEY or JUDGE0_API_KEY environment variable in your Vercel deployment settings for production execution to work.`,
                     status: { id: 11, description: 'Execution Error' },
                     time: 0
                 });
@@ -190,41 +193,102 @@ const executeCodeOnJudge0 = async (code, languageId, input) => {
         });
     }
 
-    // Call RapidAPI Judge0
-    const options = {
-        method: 'POST',
-        url: 'https://judge0-ce.p.rapidapi.com/submissions',
-        params: { base64_encoded: 'false', fields: '*' },
-        headers: {
-            'content-type': 'application/json',
-            'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
-            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-        },
-        data: {
-            language_id: languageId,
-            source_code: code,
-            stdin: input || ""
-        }
-    };
-
-    const submissionRes = await axios.request(options);
-    const token = submissionRes.data.token;
-
-    // Poll for result
-    let statusId = 1;
-    let result = null;
-    while (statusId <= 2) {
-        await new Promise(r => setTimeout(r, 1000));
-        const res = await axios.get(`https://judge0-ce.p.rapidapi.com/submissions/${token}?fields=*`, {
+    if (preferJudge0) {
+        // Call RapidAPI Judge0
+        const options = {
+            method: 'POST',
+            url: 'https://judge0-ce.p.rapidapi.com/submissions',
+            params: { base64_encoded: 'false', fields: '*' },
             headers: {
-                'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+                'content-type': 'application/json',
+                'X-RapidAPI-Key': apiKey,
                 'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+            },
+            data: {
+                language_id: languageId,
+                source_code: code,
+                stdin: input || ""
             }
-        });
-        statusId = res.data.status.id;
-        result = res.data;
+        };
+
+        const submissionRes = await axios.request(options);
+        const token = submissionRes.data.token;
+
+        // Poll for result
+        let statusId = 1;
+        let result = null;
+        while (statusId <= 2) {
+            await new Promise(r => setTimeout(r, 1000));
+            const res = await axios.get(`https://judge0-ce.p.rapidapi.com/submissions/${token}?fields=*`, {
+                headers: {
+                    'X-RapidAPI-Key': apiKey,
+                    'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+                }
+            });
+            statusId = res.data.status.id;
+            result = res.data;
+        }
+        return result;
+    } else {
+        // Call OneCompiler API (100% Free Tier Supported)
+        let oneCompilerLang = '';
+        let fileName = '';
+        if (languageId === 63) {
+            oneCompilerLang = 'javascript';
+            fileName = 'index.js';
+        } else if (languageId === 71) {
+            oneCompilerLang = 'python';
+            fileName = 'index.py';
+        } else if (languageId === 62) {
+            oneCompilerLang = 'java';
+            fileName = 'index.java';
+        } else if (languageId === 54) {
+            oneCompilerLang = 'cpp';
+            fileName = 'index.cpp';
+        } else {
+            throw new Error('Unsupported language for compilation');
+        }
+
+        const options = {
+            method: 'POST',
+            url: 'https://onecompiler-apis.p.rapidapi.com/api/v1/run',
+            headers: {
+                'content-type': 'application/json',
+                'X-RapidAPI-Key': apiKey,
+                'X-RapidAPI-Host': 'onecompiler-apis.p.rapidapi.com'
+            },
+            data: {
+                language: oneCompilerLang,
+                stdin: input || "",
+                files: [
+                    {
+                        name: fileName,
+                        content: code
+                    }
+                ]
+            }
+        };
+
+        const response = await axios.request(options);
+        const data = response.data;
+
+        const errorMsg = data.exception || data.stderr;
+        if (errorMsg) {
+            return {
+                stdout: data.stdout || null,
+                stderr: errorMsg,
+                status: { id: 11, description: 'Runtime Error' },
+                time: (data.executionTime || 0) / 1000
+            };
+        }
+
+        return {
+            stdout: data.stdout || null,
+            stderr: null,
+            status: { id: 3, description: 'Accepted' },
+            time: (data.executionTime || 0) / 1000
+        };
     }
-    return result;
 };
 
 
