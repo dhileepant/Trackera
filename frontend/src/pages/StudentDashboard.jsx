@@ -17,7 +17,8 @@ import {
   Sun,
   Moon,
   Trophy,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
@@ -28,6 +29,7 @@ import CodingHeatmap from '../components/CodingHeatmap';
 import PracticeDashboard from '../components/PracticeDashboard';
 import ProgressDashboard from '../components/ProgressDashboard';
 import Logo from '../components/Logo';
+import ResumeAnalyzer from './ResumeAnalyzer';
 
 const StudentDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -138,6 +140,21 @@ const StudentDashboard = () => {
               <span className="font-medium">{item.name}</span>
             </button>
           ))}
+          
+          <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]/60">
+            AI Tools
+          </div>
+          <button
+            onClick={() => setActiveTab('Resume Analyzer')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              activeTab === 'Resume Analyzer' 
+                ? 'bg-[#3B82F6]/15 text-[#3B82F6] border-l-[3px] border-[#3B82F6] rounded-none' 
+                : `${theme.textMuted} hover:bg-white/5 hover:${theme.text}`
+            }`}
+          >
+            <Sparkles size={20} strokeWidth={activeTab === 'Resume Analyzer' ? 2.5 : 2} className={`transition-colors duration-200 ${activeTab === 'Resume Analyzer' ? 'text-[#3B82F6]' : 'text-[#9CA3AF] group-hover:text-white'}`} />
+            <span className="font-medium">Resume Analyzer</span>
+          </button>
         </nav>
 
         <button 
@@ -314,6 +331,10 @@ const StudentDashboard = () => {
 
           {activeTab === 'Placement Status' && (
              <StudentPlacementTracking theme={theme} isDarkMode={isDarkMode} />
+          )}
+
+          {activeTab === 'Resume Analyzer' && (
+             <ResumeAnalyzer theme={theme} isDarkMode={isDarkMode} />
           )}
 
           {['Assessments', 'Settings'].includes(activeTab) && (

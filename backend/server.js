@@ -21,6 +21,7 @@ app.use('/api/practice', practiceRoutes);
 app.use('/api/progress', require('./routes/progressRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/resume', require('./routes/resumeRoutes'));
 
 // Health check
 app.get('/health', (req, res) => {
