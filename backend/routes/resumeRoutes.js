@@ -7,8 +7,10 @@ const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Ensure temp_uploads directory exists inside the backend workspace
-const uploadDir = path.join(__dirname, '../temp_uploads');
+const os = require('os');
+
+// Ensure temp_uploads directory exists inside the OS temp directory (writable on Vercel)
+const uploadDir = path.join(os.tmpdir(), 'temp_uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
