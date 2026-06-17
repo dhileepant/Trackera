@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { PDFParse } = require('pdf-parse');
+const pdfParse = require('pdf-parse');
 const ResumeAnalysis = require('../models/ResumeAnalysis');
 const resumeAnalyzerService = require('../services/resumeAnalyzerService');
 
@@ -23,9 +23,7 @@ exports.analyzeResume = async (req, res) => {
         
         // Read PDF and extract text using the PDFParse class
         const dataBuffer = fs.readFileSync(tempFilePath);
-        const pdfParserInstance = new PDFParse({ data: dataBuffer });
-        await pdfParserInstance.load();
-        const parsedPdf = await pdfParserInstance.getText();
+        const parsedPdf = await pdfParse(dataBuffer);
         
         if (!parsedPdf || !parsedPdf.text || !parsedPdf.text.trim()) {
             fs.unlinkSync(tempFilePath);
